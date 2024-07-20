@@ -1,0 +1,945 @@
+<!DOCTYPE HTML>
+<!--
+	Solid State by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>Self-Driving Car Project - Roberto Pariente</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+	</head>
+	<body class="is-preload">
+
+		<!-- Page Wrapper -->
+			<div id="page-wrapper">
+
+				<!-- Header -->
+					<header id="header">
+						<h1><a href="index.html">Self-Driving Car Project</a></h1>
+						<nav>
+							<a href="#menu">Menu</a>
+						</nav>
+					</header>
+					
+				<!-- Menu -->
+					<nav id="menu">
+						<div class="inner">
+							<h2>Menu</h2>
+							<ul class="links">
+								<li><a href="index.html">Home</a></li>
+								<li><a href="generic.html">Generic</a></li>
+								<li><a href="elements.html">Elements</a></li>
+								<li><a href="#">Log In</a></li>
+								<li><a href="#">Sign Up</a></li>
+							</ul>
+							<a href="#" class="close">Close</a>
+						</div>
+					</nav>
+
+				<!-- Wrapper -->
+					<section id="wrapper">
+						<header>
+							<div class="inner">
+								<h2>Self-Driving Car Project</h2>
+								<p>Creation of a Self-Driving Car using Reinforcement Learning.</p>
+							</div>
+						</header>
+
+						
+
+						<!-- Content -->
+							<div class="wrapper">
+								<div class="inner">
+
+									<header>
+								        <h1>Self-Driving Car Project</h1>
+									        <nav>
+									            <ul class="links">
+									                <li><a href="#description">Description</a></li>
+									                <li><a href="#methodology">Methodology</a></li>
+									                <li><a href="#code">Code</a></li>
+									                <li><a href="#results">Results</a></li>
+									            </ul>
+									        </nav>
+									</header>
+									
+									<section id="description">
+										<h2 class="major">Description of the Project</h2>
+										<h3>Description</h3>
+										<p>This project involves developing a self-driving car using computer vision and machine learning algorithms. The goal is to create a vehicle that can navigate roads, detect obstacles, and make driving decisions autonomously.</p>
+    									</section>
+									
+									<section id="methodology">
+										<h2 class="major">Methodology of the Project</h2>
+										<h3>Methodology</h3>
+									        <details>
+									            <summary>Theory</summary>
+									            <p>Understanding the principles of computer vision and machine learning, specifically convolutional neural networks (CNNs).</p>
+									        </details>
+									        <details>
+									            <summary>Data Collection</summary>
+									            <p>Gathering and preprocessing a dataset of road images.</p>
+									        </details>
+									        <details>
+									            <summary>Model Training</summary>
+									            <p>Training a CNN to detect lanes, obstacles, and traffic signs.</p>
+									        </details>
+									        <details>
+									            <summary>Testing</summary>
+									            <p>Evaluating the model's performance on test data and refining it for better accuracy.</p>
+									        </details>
+									</section>
+									
+									<section id="code">
+										<h2 class="major">Code of the Project</h2>
+										<h3>Code</h3>
+									        <details>
+									            <summary>Preprocessing Code</summary>
+										<p>Code.</p>
+										<pre><code>
+
+import numpy as np
+import math
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import matplotlib.patches as patches
+from IPython.display import clear_output
+import imageio
+import matplotlib.backends.backend_agg as plt_backend_agg
+import os
+import subprocess
+import shutil
+import time
+import pickle
+										
+class Car:
+    def __init__(self, position, acceleration, angle, width, length, dist_sec_lat, dist_sec_front, angle_sensor, nn):
+        self.position = np.array(position)
+        self.velocity = 0.5
+        self.acceleration = acceleration
+        self.angle = angle
+        self.width = width
+        self.length = length
+        self.dist_sec_lat = dist_sec_lat
+        self.dist_sec_front = dist_sec_front
+        self.angle_rad = math.radians(self.angle)
+        self.angle_sensor = angle_sensor
+        self.nn = nn
+        self.fitness = 0
+        
+    def set_angle(self, new_angle):
+        self.angle = new_angle
+        self.angle_rad = math.radians(self.angle)
+    
+    def set_acceleration(self, new_acceleration):
+        self.acceleration = new_acceleration
+
+    def update_position(self, delta_t):
+        
+        #v0_mod = np.sqrt(self.velocity[0]**2 + self.velocity[1]**2)
+        v0_mod = self.velocity
+        v0 = v0_mod * np.array([math.cos(self.angle_rad), math.sin(self.angle_rad)])
+        a0 = self.acceleration * np.array([math.cos(self.angle_rad), math.sin(self.angle_rad)])
+        
+        prev_position = self.position 
+        
+        self.velocity = v0_mod + self.acceleration * delta_t
+        self.position = self.position + v0 * delta_t + 0.5 * a0 * delta_t ** 2
+        
+        if self.velocity > 0 :
+            car_dist_vec = self.position - prev_position
+            self.fitness = self.fitness + np.sqrt(car_dist_vec[0] ** 2 + car_dist_vec[1] ** 2)
+    
+    
+    def intersect(self, p1, p2, p3, p4):
+        # intersection between line(p1, p2) and line(p3, p4)
+        x1,y1 = p1
+        x2,y2 = p2
+        x3,y3 = p3
+        x4,y4 = p4
+
+        denom = (y4-y3)*(x2-x1) - (x4-x3)*(y2-y1)
+
+        if denom == 0: # parallel
+            return None
+        ua = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / denom
+        if ua < 0 or ua > 1: # out of range
+            return None
+        ub = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / denom
+        if ub < 0 or ub > 1: # out of range
+            return None
+        
+        x = x1 + ua * (x2-x1)
+        y = y1 + ua * (y2-y1)
+        return (x,y)
+    
+    def intersection_wall(self, road):     
+        angle_sensor_rad = math.radians(self.angle_sensor)
+        
+        right_inters_vec = []
+        left_inters_vec = []
+        front_inters_vec = []
+        
+        for i in range(0,len(road)):
+
+            left_inters = self.intersect( 
+                                (self.position[0], self.position[1] ),
+                                (self.position[0] + math.cos(self.angle_rad + angle_sensor_rad) * self.dist_sec_lat, self.position[1] + math.sin(self.angle_rad + angle_sensor_rad) * self.dist_sec_lat ),
+                                (road[i][0], road[i][2]),
+                                (road[i][1], road[i][3]))
+            right_inters = self.intersect( 
+                                (self.position[0], self.position[1] ),
+                                (self.position[0] + math.cos(self.angle_rad - angle_sensor_rad) * self.dist_sec_lat, self.position[1] + math.sin(self.angle_rad - angle_sensor_rad) * self.dist_sec_lat ),
+                                (road[i][0], road[i][2]),
+                                (road[i][1], road[i][3]))
+            front_inters = self.intersect( 
+                                (self.position[0], self.position[1] ),
+                                (self.position[0] + math.cos(self.angle_rad) * self.dist_sec_front, self.position[1] + math.sin(self.angle_rad) * self.dist_sec_front ),
+                                (road[i][0], road[i][2]),
+                                (road[i][1], road[i][3]))
+
+            if left_inters is not None:
+                    left_inters_vec.append(left_inters)
+            if right_inters is not None:
+                    right_inters_vec.append(right_inters)
+            if front_inters is not None:
+                    front_inters_vec.append(front_inters)
+            
+        if len(left_inters_vec) == 0:
+            left_inters_vec.append((self.position[0] + math.cos(self.angle_rad + angle_sensor_rad) * self.dist_sec_lat, self.position[1] + math.sin(self.angle_rad + angle_sensor_rad) * self.dist_sec_lat))
+        if len(right_inters_vec) == 0:
+            right_inters_vec.append((self.position[0] + math.cos(self.angle_rad - angle_sensor_rad) * self.dist_sec_lat, self.position[1] + math.sin(self.angle_rad - angle_sensor_rad) * self.dist_sec_lat))
+        if len(front_inters_vec) == 0:
+            front_inters_vec.append((self.position[0] + math.cos(self.angle_rad) * self.dist_sec_front, self.position[1] + math.sin(self.angle_rad) * self.dist_sec_front))
+
+        return left_inters_vec, right_inters_vec,front_inters_vec
+
+    def get_sensor_data(self, road):
+        left_inters, right_inters, front_inters = self.intersection_wall(road)
+        
+        left_distance = np.min([np.linalg.norm(np.array(point) - self.position) for point in left_inters])
+        right_distance = np.min([np.linalg.norm(np.array(point) - self.position) for point in right_inters])
+        front_distance = np.min([np.linalg.norm(np.array(point) - self.position) for point in front_inters])
+        
+        return left_distance, right_distance, front_distance
+
+    def check_crash(self, road):
+        crash_vector = self.get_sensor_data(road)
+        
+        if min(crash_vector) <= self.width:
+            return True
+        else:
+            return False
+        
+    def draw(self, road, t, fig, ax, generation, sensor_draw = False):
+        #clear_output(wait=True)
+        #fig, ax = plt.subplots(1,figsize = (20,6))
+        #ax.clear()
+        #ax.set_xlim([-3, 13])
+        #ax.set_ylim([-2, 14])
+        ax.set_ylim([-3, 14])
+        
+
+        #for i in range(0,len(road)):
+        #    ax.plot(road[i][0:2], road[i][2:4], 'k')
+        
+        left_inters, right_inters, front_inters = self.intersection_wall(road)
+        
+        
+        angle_sensor_rad = math.radians(self.angle_sensor)
+        
+        if sensor_draw:
+            for i in range(0, len(left_inters)):
+                ax.plot(*left_inters[i], 'ok', markersize=3)
+            for i in range(0, len(right_inters)):
+                ax.plot(*right_inters[i], 'ok', markersize=3)
+            for i in range(0, len(front_inters)):
+                ax.plot(*front_inters[i], 'ok', markersize=3)
+            
+            ax.plot([self.position[0], self.position[0] + math.cos(self.angle_rad) * self.dist_sec_front],
+                     [self.position[1], self.position[1] + math.sin(self.angle_rad) * self.dist_sec_front],
+                     [self.position[0], self.position[0] + math.cos(self.angle_rad + angle_sensor_rad) * self.dist_sec_lat],
+                     [self.position[1], self.position[1] + math.sin(self.angle_rad + angle_sensor_rad) * self.dist_sec_lat],
+                     [self.position[0], self.position[0] + math.cos(self.angle_rad - angle_sensor_rad) * self.dist_sec_lat],
+                     [self.position[1], self.position[1] + math.sin(self.angle_rad - angle_sensor_rad) * self.dist_sec_lat],)
+        
+        
+        square = patches.Rectangle((
+                                self.position[0] - math.cos(self.angle_rad) * self.length / 2    + math.sin(self.angle_rad) * self.width / 2,
+                                self.position[1] - math.cos(self.angle_rad) * self.width / 2    - math.sin(self.angle_rad) * self.length / 2),
+                                self.length, self.width, edgecolor='black', facecolor='grey')
+
+        ax.plot(self.position[0],self.position[1],'ko',markersize=1)
+
+        square.set_angle(self.angle)
+        ax.add_patch(square)
+        text = "t = %1.2f s" % t
+        ax.text(0,1.5,text)
+        ax.text(0,2,"Generation: %2d" % int(generation+1))
+        #ax.grid()
+        #ax.axis('equal')
+        
+        return fig,ax
+
+class NNetwork:
+    def __init__(self, layer_sizes):
+        
+        self.layer_sizes = layer_sizes
+        self.num_layers = len(layer_sizes)
+        self.weights = []
+        self.biases = []
+        #self.a = []
+        #self.z = []
+        
+        for i in range(self.num_layers - 1):
+            #weight = np.random.randn(layer_sizes[i], layer_sizes[i+1])
+            weight = np.random.randn(layer_sizes[i], layer_sizes[i+1]) * np.sqrt(2 / layer_sizes[i])
+            bias = np.random.randn(1, layer_sizes[i+1]) * np.sqrt(2 / layer_sizes[i])
+            self.weights.append(weight)
+            self.biases.append(bias)
+        
+    def sigmoid(self, x):
+        return 1 / ( 1 + np.exp(-x) )
+    
+    def relu(self, x):
+        return np.maximum(0, x)
+    
+    def forward_propagation(self, inputs):
+        self.a = []
+        self.z = []
+        activation = inputs
+        
+        for i in range(self.num_layers - 2):
+            z_layer = np.sum(activation * np.transpose(self.weights[i]),axis=1) + self.biases[i]
+            a_layer = self.relu(z_layer)
+            self.z.append(z_layer)
+            self.a.append(a_layer)
+            activation = a_layer
+         
+        z_layer = np.sum(activation * np.transpose(self.weights[-1]),axis=1) + self.biases[-1]
+        a_layer = self.sigmoid(z_layer)
+        self.z.append(z_layer)
+        self.a.append(a_layer)
+        
+    def output(self):
+        return self.a[-1][0]
+        
+    def min_max_scaling(self, data, min_val, max_val):
+        return (data - min_val) / (max_val - min_val)
+        
+    def update_weights(self, best_weights, best_biases, learning_rate):
+        
+        for i in range(self.num_layers - 1):
+            #self.weights[i] = best_weights[i] * (1 + learning_rate * np.random.uniform(-1,1))
+            #self.biases[i] = best_biases[i] * (1 + learning_rate * np.random.uniform(-1,1))
+            self.weights[i] = best_weights[i] * (1 + learning_rate * np.random.uniform(-1, 1, size=best_weights[i].shape))
+            self.biases[i] = best_biases[i] * (1 + learning_rate * np.random.uniform(-1, 1, size=best_biases[i].shape))
+
+def simulate_car(population, road, t_final, delta_t, max_turn, max_acceleration, draw_option, generation, video_count,video_option,frame_skip):
+    
+    t = 0
+    step_count = 0
+    output_directory = ""
+    
+    if video_option:
+        output_directory = f"Step_video_files/Gen{generation:03d}"
+
+        if not os.path.exists(output_directory):
+            os.makedirs(output_directory)
+    
+    while t < t_final and not all(car.check_crash(road) for car in population):# and not car.check_crash(road):
+        if (draw_option or video_option) :
+            if step_count % frame_skip == 0:
+                fig, ax = plt.subplots(1, figsize=(20, 10))
+                ax.set_ylim([-3, 14])
+                ax.grid()
+                ax.axis('equal')
+                for i in range(0,len(road)):
+                    ax.plot(road[i][0:2], road[i][2:4], 'k')
+        
+        for car in population:
+            if not car.check_crash(road):
+                left_distance, right_distance, front_distance = car.get_sensor_data(road)
+                inputs = [
+                    car.nn.min_max_scaling(left_distance, 0, car.dist_sec_lat),
+                    car.nn.min_max_scaling(right_distance, 0, car.dist_sec_lat),
+                    car.nn.min_max_scaling(front_distance, 0, car.dist_sec_front),
+                    car.nn.min_max_scaling(car.velocity , 0, 10),
+                    car.nn.min_max_scaling(car.angle, 0, 180)
+                ]
+
+                car.nn.forward_propagation(inputs)
+                output = car.nn.output()
+
+                new_angle = car.angle + (output[0] - output[1]) * max_turn * delta_t
+                new_acceleration = (output[2] - output[3]) * max_acceleration
+
+                car.update_position(delta_t)
+                car.set_angle(new_angle)
+                car.set_acceleration(new_acceleration)
+            
+            best_fit = []
+            
+            for car_fit in population:
+                best_fit.append(car_fit.fitness)
+            car_best_fit = population[best_fit.index(max(best_fit))]
+            
+            
+            if (draw_option or video_option):
+                if step_count % frame_skip == 0:
+                    if car == car_best_fit:
+                        fig,ax = car.draw(road, t, fig, ax, generation,True)
+                    else:
+                        fig,ax = car.draw(road, t, fig, ax, generation,False)
+
+
+        if draw_option and step_count % frame_skip == 0:
+            plt.show()
+            video_count += 1
+            plt.pause(0.01)
+            clear_output(wait=True)
+        
+        if video_option and step_count % frame_skip == 0:
+            filename = f"frame_step_{video_count:06d}.png"
+            filepath = os.path.join(output_directory, filename)
+            plt.savefig(filepath)
+            plt.close(fig)
+            video_count += 1
+        
+        t = t + delta_t
+        step_count += 1
+        
+    return video_count,output_directory
+
+
+        
+def simulate_generation(population, road, t_final, delta_t, max_turn, max_acceleration):
+    for car in population:
+        simulate_car(car, road, t_final, delta_t, max_turn, max_acceleration, False)
+
+def select_best_car(population):
+    return max(population, key=lambda car: car.fitness)
+
+def generate_next_population(best_car, population_size, learning_rate):
+    new_population = []
+    best_weights = best_car.nn.weights
+    best_biases = best_car.nn.biases
+    for _ in range(population_size):
+        nn = NNetwork(best_car.nn.layer_sizes)
+        nn.update_weights(best_weights, best_biases, learning_rate)
+        new_car = Car(position, acceleration, angle, width, length, dist_sec_lat, dist_sec_front, angle_sensor, nn)        
+        new_population.append(new_car)
+    return new_population
+
+def draw_best_car(best_car, road, t_final, delta_t, max_turn, max_acceleration):
+    population = []
+    best_weights = best_car.nn.weights
+    best_biases = best_car.nn.biases
+
+    nn = NNetwork(best_car.nn.layer_sizes)
+
+    nn.update_weights(best_weights, best_biases, 0)
+    new_car = Car(position, acceleration, angle, width, length, dist_sec_lat, dist_sec_front, angle_sensor, nn)
+    population.append(new_car)
+    simulate_car(population,new_car, road, t_final, delta_t, max_turn, max_acceleration, True, 0)
+    
+    
+def create_video_and_cleanup(output_directory, generation,fps):
+    # Use ffmpeg to create a video
+    video_filename = os.path.join("Step_video_files", f"Gen{generation:03d}_output.mp4")
+    
+    if os.path.exists(video_filename):
+        os.remove(video_filename)
+        print(f"Deleted existing video file: {video_filename}")
+    
+    ffmpeg_command = [
+        'ffmpeg', '-f', 'image2', '-framerate', str(fps), '-i',
+        os.path.join(output_directory, 'frame_step_%06d.png'),
+        '-c:v', 'libx264', '-pix_fmt', 'yuv420p', video_filename
+    ]
+
+    try:
+        subprocess.run(ffmpeg_command, check=True)
+        print(f"Video created: {video_filename}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred while creating video: {e}")
+
+    # Delete the figures to save memory
+    shutil.rmtree(output_directory)
+    print(f"Deleted directory: {output_directory}")
+    
+    
+def reset_generation(population, population_size):
+    new_population = []
+    
+    for ii in range(population_size):
+        best_weights = population[ii].nn.weights
+        best_biases = population[ii].nn.biases
+        nn = NNetwork(population[ii].nn.layer_sizes)
+        nn.update_weights(best_weights, best_biases, 0)
+        new_car = Car(position, acceleration, angle, width, length, dist_sec_lat, dist_sec_front, angle_sensor, nn)        
+        new_population.append(new_car)
+    return new_population    
+
+line0 = [-1,-1,-0.6,0.4]
+
+line1 = [-1,2,-0.6,-0.6]
+line2 = [2,4.2,-0.6,0.8]
+line3 = [4.2,4.2,0.8,3]
+line4 = [4.2,2.2,3,4.5]
+line5 = [2.2,2.2,4.5,6.2]
+line6 = [2.2,4.2,6.2,7.5]
+line7 = [4.2,6.5,7.5,7.5]
+line8 = [6.5,7.4,7.5,6]
+line9 = [7.4,7.4,6,4]
+line10 = [7.4,9.4,4,3]
+line11 = [9.4,11.4,3,4]
+line12 = [11.4,11.4,4,9]
+line13 = [11.4,9.6,9,10.5]
+line14 = [9.6,6.7,10.5,11.5]
+line15 = [6.7,-2,11.5,11.5]
+
+line16 = [-1,1.6,0.4,0.4]
+line17 = [1.6,3.1,0.4,1.3]
+line18 = [3.1,3.1,1.3,2.4]
+line19 = [3.1,0.8,2.4,4.1]
+line20 = [0.8,0.8,4.1,6.6]
+line21 = [0.8,3.8,6.6,8.8]
+line22 = [3.8,7.3,8.8,8.7]
+line23 = [7.3,8.6,8.7,6.7]
+line24 = [8.6,8.6,6.7,4.7]
+line25 = [8.6,9.5,4.7,4.1]
+line26 = [9.5,10.3,4.1,4.6]
+line27 = [10.3,10.3,4.6,8.4]
+line28 = [10.3,9,8.4,9.8]
+line29 = [9,6.5,9.8,10.6]
+line30 = [6.5,3.8,10.6,11]
+line31 = [3.8,-2,11,11.1]
+
+road_prod_final = [line0, line1, line2, line3, line4, line5, line6, line7, line8, line9, line10, line11, line12, line13, line14, line15, line16, line17,
+                   line18, line19, line20, line21, line22, line23, line24, line25, line26, line27, line28, line29, line30, line31]
+
+
+position=[-0.8, -0.1]
+
+acceleration = 0
+angle=0
+width=0.3
+length=0.5
+dist_sec_lat = 2
+dist_sec_front = 4
+angle_sensor = 30
+
+max_turn = 90
+max_acceleration = 0.1
+
+road = road_prod_final
+
+neuron_layers = [5,32,16,4]
+# outputs
+# [0]: turn left
+# [1]: turn right
+# [2]: speed up
+# [3]: speed down
+
+
+population_size = 40
+num_generations = 20
+t_final = 60
+fps = 10
+delta_t = 1/fps
+learning_rate = 0.2
+
+population_list = []
+video_option = False
+draw_option = False
+
+frame_skip = 2
+
+# Initialize a population of cars
+population = []
+for car_num in range(population_size):
+    nn = NNetwork(neuron_layers)  # Example layer sizes
+    car = Car(position, acceleration, angle, width, length, dist_sec_lat, dist_sec_front, angle_sensor, nn)
+    population.append(car)
+    
+for generation in range(num_generations):
+    population_list.append(population)
+    time_0 = time.time()
+    video_count = 1
+    video_count, output_directory = simulate_car(population, road, t_final, delta_t, max_turn, max_acceleration, draw_option, generation,video_count,video_option,frame_skip)
+    
+    if video_option:
+        create_video_and_cleanup(output_directory, generation,fps/frame_skip)
+        
+    best_car = select_best_car(population)
+    print(f'Generation {generation + 1: 03d}: Best Fitness = {best_car.fitness: 0.4f}. Epoch time: {time.time()-time_0: 0.3f} s')
+    
+    population = generate_next_population(best_car, population_size, learning_rate)
+
+									;</code></pre>	
+									</section>
+
+
+
+
+									<section id="results">
+										<h2 class="major">Results of the Project</h2>
+										<p>This is <b>bold</b> and this is <strong>strong</strong>. This is <i>italic</i> and this is <em>emphasized</em>.
+										This is <sup>superscript</sup> text and this is <sub>subscript</sub> text.
+										This is <u>underlined</u> and this is code: <code>for (;;) { ... }</code>. Finally, <a href="#">this is a link</a>.</p>
+									</section>
+
+	    
+									<section>
+										<h4>Blockquote</h4>
+										<blockquote>Fringilla nisl. Donec accumsan interdum nisi, quis tincidunt felis sagittis eget tempus euismod. Vestibulum ante ipsum primis in faucibus vestibulum. Blandit adipiscing eu felis iaculis volutpat ac adipiscing accumsan faucibus. Vestibulum ante ipsum primis in faucibus lorem ipsum dolor sit amet nullam adipiscing eu felis.</blockquote>
+										<h4>Preformatted</h4>
+									</section>
+									
+	    
+
+									<section>
+										<h3 class="major">Lists</h3>
+										<div class="row">
+											<div class="col-6 col-12-medium">
+												<h4>Unordered</h4>
+												<ul>
+													<li>Dolor pulvinar etam.</li>
+													<li>Sagittis adipiscing.</li>
+													<li>Felis enim feugiat.</li>
+												</ul>
+												<h4>Alternate</h4>
+												<ul class="alt">
+													<li>Dolor pulvinar etiam.</li>
+													<li>Sagittis adipiscing.</li>
+													<li>Felis enim feugiat.</li>
+												</ul>
+											</div>
+											<div class="col-6 col-12-medium">
+												<h4>Ordered</h4>
+												<ol>
+													<li>Dolor pulvinar etiam.</li>
+													<li>Etiam vel felis viverra.</li>
+													<li>Felis enim feugiat.</li>
+													<li>Dolor pulvinar etiam.</li>
+													<li>Etiam vel felis lorem.</li>
+													<li>Felis enim et feugiat.</li>
+												</ol>
+												<h4>Icons</h4>
+												<ul class="icons">
+													<li><a href="#" class="icon brands fa-twitter"><span class="label">Twitter</span></a></li>
+													<li><a href="#" class="icon brands fa-facebook-f"><span class="label">Facebook</span></a></li>
+													<li><a href="#" class="icon brands fa-instagram"><span class="label">Instagram</span></a></li>
+													<li><a href="#" class="icon brands fa-github"><span class="label">Github</span></a></li>
+												</ul>
+											</div>
+										</div>
+										<h4>Actions</h4>
+										<div class="row">
+											<div class="col-6 col-12-medium">
+												<ul class="actions">
+													<li><a href="#" class="button primary">Default</a></li>
+													<li><a href="#" class="button">Default</a></li>
+												</ul>
+												<ul class="actions small">
+													<li><a href="#" class="button primary small">Small</a></li>
+													<li><a href="#" class="button small">Small</a></li>
+												</ul>
+												<ul class="actions stacked">
+													<li><a href="#" class="button primary">Default</a></li>
+													<li><a href="#" class="button">Default</a></li>
+												</ul>
+												<ul class="actions stacked small">
+													<li><a href="#" class="button primary small">Small</a></li>
+													<li><a href="#" class="button small">Small</a></li>
+												</ul>
+											</div>
+											<div class="col-6 col-12-medium">
+												<ul class="actions stacked">
+													<li><a href="#" class="button primary fit">Default</a></li>
+													<li><a href="#" class="button fit">Default</a></li>
+												</ul>
+												<ul class="actions stacked small">
+													<li><a href="#" class="button primary small fit">Small</a></li>
+													<li><a href="#" class="button small fit">Small</a></li>
+												</ul>
+											</div>
+										</div>
+										<h4>Pagination</h4>
+										<ul class="pagination">
+											<li><span class="button small disabled">Prev</span></li>
+											<li><a href="#" class="page active">1</a></li>
+											<li><a href="#" class="page">2</a></li>
+											<li><a href="#" class="page">3</a></li>
+											<li><span>&hellip;</span></li>
+											<li><a href="#" class="page">8</a></li>
+											<li><a href="#" class="page">9</a></li>
+											<li><a href="#" class="page">10</a></li>
+											<li><a href="#" class="button small">Next</a></li>
+										</ul>
+									</section>
+
+									<section>
+										<h3 class="major">Table</h3>
+										<h4>Default</h4>
+										<div class="table-wrapper">
+											<table>
+												<thead>
+													<tr>
+														<th>Name</th>
+														<th>Description</th>
+														<th>Price</th>
+													</tr>
+												</thead>
+												<tbody>
+													<tr>
+														<td>Item One</td>
+														<td>Ante turpis integer aliquet porttitor.</td>
+														<td>29.99</td>
+													</tr>
+													<tr>
+														<td>Item Two</td>
+														<td>Vis ac commodo adipiscing arcu aliquet.</td>
+														<td>19.99</td>
+													</tr>
+													<tr>
+														<td>Item Three</td>
+														<td> Morbi faucibus arcu accumsan lorem.</td>
+														<td>29.99</td>
+													</tr>
+													<tr>
+														<td>Item Four</td>
+														<td>Vitae integer tempus condimentum.</td>
+														<td>19.99</td>
+													</tr>
+													<tr>
+														<td>Item Five</td>
+														<td>Ante turpis integer aliquet porttitor.</td>
+														<td>29.99</td>
+													</tr>
+												</tbody>
+												<tfoot>
+													<tr>
+														<td colspan="2"></td>
+														<td>100.00</td>
+													</tr>
+												</tfoot>
+											</table>
+										</div>
+
+										<h4>Alternate</h4>
+										<div class="table-wrapper">
+											<table class="alt">
+												<thead>
+													<tr>
+														<th>Name</th>
+														<th>Description</th>
+														<th>Price</th>
+													</tr>
+												</thead>
+												<tbody>
+													<tr>
+														<td>Item One</td>
+														<td>Ante turpis integer aliquet porttitor.</td>
+														<td>29.99</td>
+													</tr>
+													<tr>
+														<td>Item Two</td>
+														<td>Vis ac commodo adipiscing arcu aliquet.</td>
+														<td>19.99</td>
+													</tr>
+													<tr>
+														<td>Item Three</td>
+														<td> Morbi faucibus arcu accumsan lorem.</td>
+														<td>29.99</td>
+													</tr>
+													<tr>
+														<td>Item Four</td>
+														<td>Vitae integer tempus condimentum.</td>
+														<td>19.99</td>
+													</tr>
+													<tr>
+														<td>Item Five</td>
+														<td>Ante turpis integer aliquet porttitor.</td>
+														<td>29.99</td>
+													</tr>
+												</tbody>
+												<tfoot>
+													<tr>
+														<td colspan="2"></td>
+														<td>100.00</td>
+													</tr>
+												</tfoot>
+											</table>
+										</div>
+									</section>
+
+									<section>
+										<h3 class="major">Buttons</h3>
+										<ul class="actions">
+											<li><a href="#" class="button primary">Primary</a></li>
+											<li><a href="#" class="button">Default</a></li>
+										</ul>
+										<ul class="actions">
+											<li><a href="#" class="button large">Large</a></li>
+											<li><a href="#" class="button small">Small</a></li>
+										</ul>
+										<ul class="actions fit">
+											<li><a href="#" class="button fit">Fit</a></li>
+											<li><a href="#" class="button primary fit">Fit</a></li>
+											<li><a href="#" class="button fit">Fit</a></li>
+										</ul>
+										<ul class="actions fit small">
+											<li><a href="#" class="button primary fit small">Fit + Small</a></li>
+											<li><a href="#" class="button fit small">Fit + Small</a></li>
+											<li><a href="#" class="button primary fit small">Fit + Small</a></li>
+										</ul>
+										<ul class="actions">
+											<li><a href="#" class="button primary icon solid fa-download">Icon</a></li>
+											<li><a href="#" class="button icon solid fa-download">Icon</a></li>
+										</ul>
+										<ul class="actions">
+											<li><span class="button primary disabled">Disabled</span></li>
+											<li><span class="button disabled">Disabled</span></li>
+										</ul>
+									</section>
+
+									<section>
+										<h3 class="major">Form</h3>
+										<form method="post" action="#">
+											<div class="row gtr-uniform">
+												<div class="col-6 col-12-xsmall">
+													<label for="demo-name">Name</label>
+													<input type="text" name="demo-name" id="demo-name" value="" />
+												</div>
+												<div class="col-6 col-12-xsmall">
+													<label for="demo-email">Email</label>
+													<input type="email" name="demo-email" id="demo-email" value="" />
+												</div>
+												<div class="col-12">
+													<label for="demo-category">Category</label>
+													<select name="demo-category" id="demo-category">
+														<option value="">-</option>
+														<option value="1">Manufacturing</option>
+														<option value="1">Shipping</option>
+														<option value="1">Administration</option>
+														<option value="1">Human Resources</option>
+													</select>
+												</div>
+												<div class="col-4 col-12-small">
+													<input type="radio" id="demo-priority-low" name="demo-priority" checked>
+													<label for="demo-priority-low">Low Priority</label>
+												</div>
+												<div class="col-4 col-12-small">
+													<input type="radio" id="demo-priority-normal" name="demo-priority">
+													<label for="demo-priority-normal">Normal Priority</label>
+												</div>
+												<div class="col-4 col-12-small">
+													<input type="radio" id="demo-priority-high" name="demo-priority">
+													<label for="demo-priority-high">High Priority</label>
+												</div>
+												<div class="col-6 col-12-small">
+													<input type="checkbox" id="demo-copy" name="demo-copy">
+													<label for="demo-copy">Email me a copy</label>
+												</div>
+												<div class="col-6 col-12-small">
+													<input type="checkbox" id="demo-human" name="demo-human" checked>
+													<label for="demo-human">Not a robot</label>
+												</div>
+												<div class="col-12">
+													<label for="demo-message">Message</label>
+													<textarea name="demo-message" id="demo-message" rows="6"></textarea>
+												</div>
+												<div class="col-12">
+													<ul class="actions">
+														<li><input type="submit" value="Send Message" class="primary" /></li>
+														<li><input type="reset" value="Reset" /></li>
+													</ul>
+												</div>
+											</div>
+										</form>
+									</section>
+
+									<section>
+										<h3 class="major">Image</h3>
+										<h4>Fit</h4>
+										<div class="box alt">
+											<div class="row gtr-uniform">
+												<div class="col-12"><span class="image fit"><img src="images/pic08.jpg" alt="" /></span></div>
+												<div class="col-4"><span class="image fit"><img src="images/pic05.jpg" alt="" /></span></div>
+												<div class="col-4"><span class="image fit"><img src="images/pic06.jpg" alt="" /></span></div>
+												<div class="col-4"><span class="image fit"><img src="images/pic07.jpg" alt="" /></span></div>
+												<div class="col-4"><span class="image fit"><img src="images/pic07.jpg" alt="" /></span></div>
+												<div class="col-4"><span class="image fit"><img src="images/pic05.jpg" alt="" /></span></div>
+												<div class="col-4"><span class="image fit"><img src="images/pic06.jpg" alt="" /></span></div>
+												<div class="col-4"><span class="image fit"><img src="images/pic06.jpg" alt="" /></span></div>
+												<div class="col-4"><span class="image fit"><img src="images/pic07.jpg" alt="" /></span></div>
+												<div class="col-4"><span class="image fit"><img src="images/pic05.jpg" alt="" /></span></div>
+											</div>
+										</div>
+										<h4>Left &amp; Right</h4>
+										<p><span class="image left"><img src="images/pic01.jpg" alt="" /></span>Morbi mattis mi consectetur tortor elementum, varius pellentesque velit convallis. Aenean tincidunt lectus auctor mauris maximus, ac scelerisque ipsum tempor. Duis vulputate ex et ex tincidunt, quis lacinia velit aliquet. Duis non efficitur nisi, id malesuada justo. Maecenas sagittis felis ac sagittis semper. Curabitur purus leo, tempus sed finibus eget, fringilla quis risus. Maecenas et lorem quis sem varius sagittis et a est. Maecenas iaculis iaculis sem. Donec vel dolor at arcu tincidunt bibendum. Interdum et malesuada fames ac ante ipsum primis in faucibus. Fusce ut aliquet justo. Donec id neque ipsum. Integer eget ultricies odio. Nam vel ex a orci fringilla tincidunt. Aliquam eleifend ligula non velit accumsan cursus. Etiam ut gravida sapien. Morbi mattis mi consectetur tortor elementum, varius pellentesque velit convallis. Aenean tincidunt lectus auctor mauris maximus, ac scelerisque ipsum tempor. Duis vulputate ex et ex tincidunt, quis lacinia velit aliquet. Duis non efficitur nisi, id malesuada justo. Maecenas sagittis felis ac sagittis semper. Curabitur purus leo, tempus sed finibus eget, fringilla quis risus. Maecenas et lorem quis sem varius sagittis et a est. Maecenas iaculis iaculis sem. Donec vel dolor at arcu tincidunt bibendum. Interdum et malesuada fames ac ante ipsum primis in faucibus. Fusce ut aliquet justo. Donec id neque ipsum. Integer eget ultricies odio. Nam vel ex a orci fringilla tincidunt. Aliquam eleifend ligula non velit accumsan cursus. Etiam ut gravida sapien.</p>
+										<p><span class="image right"><img src="images/pic02.jpg" alt="" /></span>Vestibulum ultrices risus velit, sit amet blandit massa auctor sit amet. Sed eu lectus sem. Phasellus in odio at ipsum porttitor mollis id vel diam. Praesent sit amet posuere risus, eu faucibus lectus. Vivamus ex ligula, tempus pulvinar ipsum in, auctor porta quam. Proin nec dui cursus, posuere dui eget interdum. Fusce lectus magna, sagittis at facilisis vitae, pellentesque at etiam. Quisque posuere leo quis sem commodo, vel scelerisque nisi scelerisque. Suspendisse id quam vel tortor tincidunt suscipit. Nullam auctor orci eu dolor consectetur, interdum ullamcorper ante tincidunt. Mauris felis nec felis elementum varius. Nam sapien ante, varius in pulvinar vitae, rhoncus id massa. Donec varius ex in mauris ornare, eget euismod urna egestas. Etiam lacinia tempor ipsum, sodales porttitor justo. Aliquam dolor quam, semper in tortor eu, volutpat efficitur quam. Fusce nec fermentum nisl. Aenean erat diam, tempus aliquet erat. Etiam iaculis nulla ipsum, et pharetra libero rhoncus ut. Phasellus rutrum cursus velit, eget condimentum nunc blandit vel. In at pulvinar lectus. Morbi diam ante, vulputate et imperdiet eget, fermentum non dolor. Ut eleifend sagittis tincidunt. Sed viverra commodo mi, ac rhoncus justo. Duis neque ligula, elementum ut enim vel, posuere finibus justo. Vivamus facilisis maximus nibh quis pulvinar. Quisque hendrerit in ipsum id tellus facilisis fermentum. Proin mauris dui.</p>
+									</section>
+
+								</div>
+							</div>
+
+					</section>
+
+				<!-- Footer -->
+					<section id="footer">
+						<div class="inner">
+							<h2 class="major">Get in touch</h2>
+							<p>Cras mattis ante fermentum, malesuada neque vitae, eleifend erat. Phasellus non pulvinar erat. Fusce tincidunt, nisl eget mattis egestas, purus ipsum consequat orci, sit amet lobortis lorem lacus in tellus. Sed ac elementum arcu. Quisque placerat auctor laoreet.</p>
+							<form method="post" action="#">
+								<div class="fields">
+									<div class="field">
+										<label for="name">Name</label>
+										<input type="text" name="name" id="name" />
+									</div>
+									<div class="field">
+										<label for="email">Email</label>
+										<input type="email" name="email" id="email" />
+									</div>
+									<div class="field">
+										<label for="message">Message</label>
+										<textarea name="message" id="message" rows="4"></textarea>
+									</div>
+								</div>
+								<ul class="actions">
+									<li><input type="submit" value="Send Message" /></li>
+								</ul>
+							</form>
+							<ul class="contact">
+								<li class="icon solid fa-home">
+									Untitled Inc<br />
+									1234 Somewhere Road Suite #2894<br />
+									Nashville, TN 00000-0000
+								</li>
+								<li class="icon solid fa-phone">(000) 000-0000</li>
+								<li class="icon solid fa-envelope"><a href="#">information@untitled.tld</a></li>
+								<li class="icon brands fa-twitter"><a href="#">twitter.com/untitled-tld</a></li>
+								<li class="icon brands fa-facebook-f"><a href="#">facebook.com/untitled-tld</a></li>
+								<li class="icon brands fa-instagram"><a href="#">instagram.com/untitled-tld</a></li>
+							</ul>
+							<ul class="copyright">
+								<li>&copy; Untitled Inc. All rights reserved.</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+							</ul>
+						</div>
+					</section>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
