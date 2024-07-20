@@ -39,8 +39,18 @@
 			.content {
 			    margin-left: 220px;
 			    padding: 20px;
-			    max-width: 800px;
+			    max-width: calc(100% - 220px);
 			}
+			@media screen and (max-width: 768px) {
+		            .sidebar {
+		                width: 100%;
+		                position: relative;
+		            }
+		            .content {
+		                margin-left: 0;
+		                width: 100%;
+		            }
+        		}		
     		</style>
 
 	</head>
