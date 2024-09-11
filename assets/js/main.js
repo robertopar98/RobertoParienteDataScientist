@@ -1,145 +1,65 @@
-/*
-	Solid State by HTML5 UP
-	html5up.net | @ajlkn
-	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
-*/
 
-(function($) {
+function toggleDetails(iconElement) {
+    const details = iconElement.nextElementSibling;
+    if (details.style.display === "block") {
+        details.style.display = "none";
+    } else {
+        details.style.display = "block";
+    }
+};
 
-	var	$window = $(window),
-		$body = $('body'),
-		$header = $('#header'),
-		$banner = $('#banner');
 
-	// Breakpoints.
-		breakpoints({
-			xlarge:	'(max-width: 1680px)',
-			large:	'(max-width: 1280px)',
-			medium:	'(max-width: 980px)',
-			small:	'(max-width: 736px)',
-			xsmall:	'(max-width: 480px)'
-		});
 
-	// Play initial animations on page load.
-		$window.on('load', function() {
-			window.setTimeout(function() {
-				$body.removeClass('is-preload');
-			}, 100);
-		});
 
-	// Header.
-		if ($banner.length > 0
-		&&	$header.hasClass('alt')) {
+document.addEventListener("DOMContentLoaded", function() {
+    const darkModeToggle = document.querySelector('.dark-mode-toggle-img');
+    const lightModeImage = 'assets/images/day-mode-icon.png';
+    const darkModeImage = 'assets/images/night-mode-icon.png';
 
-			$window.on('resize', function() { $window.trigger('scroll'); });
+    // Check if there's a saved theme in localStorage
+    const currentTheme = localStorage.getItem('theme');
+    
+    // Apply the saved theme
+    if (currentTheme) {
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        
+        // Adjust the button label based on the theme
+        if (currentTheme === 'dark') {
+            darkModeToggle.textContent = 'Light Mode';
+            darkModeToggle.src = darkModeImage;
+        } else {
+            darkModeToggle.src = lightModeImage;
+        }
+    } else {
+        darkModeToggle.src = lightModeImage;
+    }
 
-			$banner.scrollex({
-				bottom:		$header.outerHeight(),
-				terminate:	function() { $header.removeClass('alt'); },
-				enter:		function() { $header.addClass('alt'); },
-				leave:		function() { $header.removeClass('alt'); }
-			});
+    // Add event listener to toggle button
+    darkModeToggle.addEventListener('click', function(event) {
+        event.preventDefault();
+        
+        // Toggle dark mode
+        if (document.documentElement.getAttribute('data-theme') === 'dark') {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light'); // Save preference in localStorage
+            darkModeToggle.textContent = 'Dark Mode'; // Update the button label
+            darkModeToggle.src = lightModeImage;
+        } else {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark'); // Save preference in localStorage
+            darkModeToggle.textContent = 'Light Mode'; // Update the button label
+            darkModeToggle.src = darkModeImage;
 
-		}
+        }
+    });
+});
 
-	// Menu.
-		var $menu = $('#menu');
 
-		$menu._locked = false;
-
-		$menu._lock = function() {
-
-			if ($menu._locked)
-				return false;
-
-			$menu._locked = true;
-
-			window.setTimeout(function() {
-				$menu._locked = false;
-			}, 350);
-
-			return true;
-
-		};
-
-		$menu._show = function() {
-
-			if ($menu._lock())
-				$body.addClass('is-menu-visible');
-
-		};
-
-		$menu._hide = function() {
-
-			if ($menu._lock())
-				$body.removeClass('is-menu-visible');
-
-		};
-
-		$menu._toggle = function() {
-
-			if ($menu._lock())
-				$body.toggleClass('is-menu-visible');
-
-		};
-
-		$menu
-			.appendTo($body)
-			.on('click', function(event) {
-
-				event.stopPropagation();
-
-				// Hide.
-					$menu._hide();
-
-			})
-			.find('.inner')
-				.on('click', '.close', function(event) {
-
-					event.preventDefault();
-					event.stopPropagation();
-					event.stopImmediatePropagation();
-
-					// Hide.
-						$menu._hide();
-
-				})
-				.on('click', function(event) {
-					event.stopPropagation();
-				})
-				.on('click', 'a', function(event) {
-
-					var href = $(this).attr('href');
-
-					event.preventDefault();
-					event.stopPropagation();
-
-					// Hide.
-						$menu._hide();
-
-					// Redirect.
-						window.setTimeout(function() {
-							window.location.href = href;
-						}, 350);
-
-				});
-
-		$body
-			.on('click', 'a[href="#menu"]', function(event) {
-
-				event.stopPropagation();
-				event.preventDefault();
-
-				// Toggle.
-					$menu._toggle();
-
-			})
-			.on('keydown', function(event) {
-
-				// Hide on escape.
-					if (event.keyCode == 27)
-						$menu._hide();
-
-			});
-
-})(jQuery);
+function toggleMenu() {
+    var navLinks = document.getElementById("navLinks");
+    if (navLinks.classList.contains("active")) {
+        navLinks.classList.remove("active");
+    } else {
+        navLinks.classList.add("active");
+    }
+}
